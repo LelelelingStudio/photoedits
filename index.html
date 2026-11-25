@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photoedits — 纯前端图像编辑 API</title>
+<meta name="description" content="Photoedits 是一个纯前端、零后端的浏览器图像编辑 API，聚合 PNG/APNG、TIFF/EXIF、ZIP、字体解析、神经网络五大底层引擎，按需加载，即引即用。">
+<style>
+  :root{
+    --bg:#f7f8fa; --surface:#fff; --ink:#1f2430; --muted:#5c6474; --line:#e5e8ee;
+    --brand:#5b5bd6; --brand-2:#7c3aed; --code-bg:#12151d; --code-ink:#e6e9f2;
+    --accent:#0ea5e9; --ok:#16a34a; --warn:#d97706; --radius:12px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;font-size:15px}
+  a{color:var(--brand);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* header */
+  header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .bar{display:flex;align-items:center;gap:14px;height:62px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:750;font-size:19px;color:var(--ink)}
+  .logo .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;color:#fff;font-size:15px;box-shadow:0 4px 12px rgba(91,91,214,.3)}
+  .logo small{font-weight:500;color:var(--muted);font-size:12px;margin-left:2px}
+  .bar nav{margin-left:auto;display:flex;gap:20px;font-size:14px;flex-wrap:wrap}
+  .bar nav a{color:var(--muted)}
+  .bar nav a:hover{color:var(--brand);text-decoration:none}
+
+  /* hero */
+  .hero{padding:66px 0 48px}
+  .tag{display:inline-block;padding:5px 12px;border-radius:999px;background:#eef0ff;color:var(--brand);font-size:12.5px;font-weight:650;letter-spacing:.3px}
+  .hero h1{font-size:clamp(34px,5vw,52px);line-height:1.15;margin:18px 0 14px;letter-spacing:-1.2px}
+  .hero h1 span{background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.lead{font-size:18px;color:var(--muted);max-width:760px;margin:0 0 26px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+  .badge{font-size:12.5px;padding:5px 11px;border:1px solid var(--line);background:#fff;border-radius:8px;color:var(--muted)}
+  .badge b{color:var(--ink)}
+
+  /* sections */
+  section{padding:34px 0;border-top:1px solid var(--line)}
+  section h2{font-size:26px;letter-spacing:-.5px;margin:0 0 8px}
+  section h2 .num{color:var(--brand);font-family:var(--mono);font-size:16px;margin-right:10px}
+  section>.sub{color:var(--muted);margin:0 0 22px}
+  h3{font-size:18px;margin:26px 0 10px}
+  h4{font-size:15px;margin:20px 0 8px;color:var(--brand)}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin:16px 0;box-shadow:0 1px 2px rgba(20,24,40,.03)}
+  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+
+  /* code */
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow:auto;font-family:var(--mono);font-size:13px;line-height:1.6;margin:12px 0;position:relative}
+  pre .cm{color:#7d88a3}
+  pre .kw{color:#c792ea}
+  pre .st{color:#a5d6a7}
+  pre .fn{color:#82aaff}
+  code{font-family:var(--mono);font-size:.92em;background:#eef0f5;padding:2px 6px;border-radius:5px;color:#b3306a}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+  th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#fafbfe;font-size:12.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+  tr:last-child td{border-bottom:none}
+  td code{white-space:nowrap}
+
+  /* method block */
+  .method{border:1px solid var(--line);border-radius:10px;margin:14px 0;overflow:hidden;background:#fff}
+  .method>.head{padding:13px 17px;background:#fafbfe;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .method .sig{font-family:var(--mono);font-weight:650;font-size:14px;color:var(--ink)}
+  .method .ret{font-size:11px;color:var(--muted);margin-left:auto;font-family:var(--mono)}
+  .method .body{padding:14px 17px}
+  .method .body>p{margin:0 0 10px;color:#3c4352}
+  .pill{font-size:10.5px;padding:2px 8px;border-radius:999px;font-weight:700;letter-spacing:.3px}
+  .pill.async{background:#eef0ff;color:var(--brand)}
+  .pill.sync{background:#eafaf0;color:var(--ok)}
+
+  .note{border-left:3px solid var(--accent);background:#eef8ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;color:#334155}
+  .note.warn{border-color:var(--warn);background:#fff8ec}
+  .note.ok{border-color:var(--ok);background:#eefaf1}
+
+  .kbd{font-family:var(--mono);font-size:12px;background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+
+  ul.clean{margin:8px 0;padding-left:20px}
+  ul.clean li{margin:5px 0}
+
+  toc{display:block;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px 22px;margin:22px 0}
+  toc b{display:block;margin-bottom:8px}
+  toc a{display:inline-block;margin:3px 14px 3px 0;font-size:14px}
+
+  footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--muted);font-size:13px}
+
+  @media(max-width:640px){
+    .bar nav{display:none}
+    .hero{padding:44px 0 32px}
+    .wrap{padding:0 16px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <div class="logo"><span class="mark">P</span> Photoedits <small>API</small></div>
+    <nav>
+      <a href="#start">快速开始</a>
+      <a href="#core">核心概念</a>
+      <a href="#canvas">Canvas</a>
+      <a href="#png">PNG</a>
+      <a href="#tiff">TIFF</a>
+      <a href="#zip">ZIP</a>
+      <a href="#font">字体</a>
+      <a href="#nn">神经网络</a>
+      <a href="#license">许可</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <span class="tag">v1.0.0 · 纯前端 · 零后端</span>
+    <h1>图像编辑能力，<br><span>一行脚本即可调用</span></h1>
+    <p class="lead">Photoedits 是一个只在浏览器里运行的图像编辑 API。它把 PNG/APNG 压缩、TIFF/EXIF/RAW 解析、ZIP 打包、字体解析、神经网络推理五大引擎聚合到一个全局对象里，按需加载，无需服务器，图片永不离开用户设备。</p>
+    <div class="badges">
+      <span class="badge"><b>0</b> 后端服务</span>
+      <span class="badge"><b>0</b> 上传</span>
+      <span class="badge"><b>5</b> 底层引擎</span>
+      <span class="badge"><b>MIT</b> 许可</span>
+      <span class="badge"><b>CDN</b> 即引即用</span>
+    </div>
+    <pre><span class="cm">&lt;!-- 只需要这一行 --&gt;</span>
+&lt;<span class="kw">script</span> <span class="fn">src</span>=<span class="st">"https://photoedits.leleleling.site/api/api.js"</span>&gt;&lt;/<span class="kw">script</span>&gt;
+&lt;<span class="kw">script</span>&gt;
+  <span class="fn">Photoedits</span>.ready().then(() =&gt; <span class="kw">console</span>.log(<span class="st">'全部引擎就绪'</span>));
+&lt;/<span class="kw">script</span>&gt;</pre>
+    <div class="note">本页只提供 API 说明，没有对外体验 Demo。如需本地查看效果，站点管理员可访问 <code>/demo.html</code>（该页已通过 <code>robots.txt</code> 禁止搜索引擎索引，且不在导航中暴露）。</div>
+  </div>
+
+  <toc>
+    <b>目录</b>
+    <a href="#start">01 快速开始</a>
+    <a href="#core">02 核心概念</a>
+    <a href="#utils">03 工具 utils</a>
+    <a href="#canvas">04 Canvas</a>
+    <a href="#png">05 PNG / APNG</a>
+    <a href="#tiff">06 TIFF / EXIF</a>
+    <a href="#zip">07 ZIP</a>
+    <a href="#font">08 字体解析</a>
+    <a href="#nn">09 神经网络</a>
+    <a href="#error">10 错误处理</a>
+    <a href="#license">11 许可与来源</a>
+  </toc>
+
+  <!-- ============ 快速开始 ============ -->
+  <section id="start">
+    <h2><span class="num">01</span>快速开始</h2>
+    <p class="sub">三步即可在任意网页中使用。</p>
+
+    <h3>第 1 步：引入脚本</h3>
+    <pre>&lt;<span class="kw">script</span> <span class="fn">src</span>=<span class="st">"https://photoedits.leleleling.site/api/api.js"</span>&gt;&lt;/<span class="kw">script</span>&gt;</pre>
+    <p>脚本会同步创建全局对象 <code>Photoedits</code>。底层引擎默认<strong>不加载</strong>，直到你第一次调用相关方法——这就是为什么它很轻。</p>
+
+    <h3>第 2 步：调用方法</h3>
+    <pre><span class="cm">// 读取一张图片，缩放后导出为 PNG Blob，再下载</span>
+<span class="kw">const</span> small = <span class="kw">await</span> Photoedits.canvas.<span class="fn">resize</span>(<span class="st">'photo.jpg'</span>, 800, 600);
+<span class="kw">const</span> blob  = <span class="kw">await</span> Photoedits.canvas.<span class="fn">toBlob</span>(small, <span class="st">'image/png'</span>);
+Photoedits.utils.<span class="fn">download</span>(blob, <span class="st">'small.png'</span>);</pre>
+
+    <h3>第 3 步：按需预加载（可选）</h3>
+    <pre><span class="cm">// 提前把所有引擎加载好，避免首次调用时的等待</span>
+<span class="kw">await</span> Photoedits.<span class="fn">ready</span>();
+
+<span class="cm">// 或者只加载其中一个</span>
+<span class="kw">await</span> Photoedits.<span class="fn">use</span>(<span class="st">'png'</span>);   <span class="cm">// png | tiff | zip | font | nn</span>
+Photoedits.<span class="fn">isLoaded</span>(<span class="st">'png'</span>);       <span class="cm">// =&gt; true</span></pre>
+
+    <div class="note ok">所有异步方法都返回标准 <code>Promise</code>，可以用 <code>await</code> 或 <code>.then()</code>。同步工具（如 <code>utils.download</code>）会在文档中用 <span class="pill sync">sync</span> 标注。</div>
+  </section>
+
+  <!-- ============ 核心概念 ============ -->
+  <section id="core">
+    <h2><span class="num">02</span>核心概念</h2>
+    <div class="grid">
+      <div class="card">
+        <h4>按需加载</h4>
+        <p>首次调用某模块方法时，API 会自动从 <code>/api/libs/</code> 加载对应脚本并缓存。重复调用不会重复下载。</p>
+      </div>
+      <div class="card">
+        <h4>纯前端</h4>
+        <p>没有后端、没有接口、没有账号。所有计算在用户浏览器内完成，图片数据不会上传。</p>
+      </div>
+      <div class="card">
+        <h4>统一 Promise</h4>
+        <p>涉及加载或图像解码的方法一律异步返回，错误通过 <code>reject</code> 抛出，可用 <code>try/catch</code> 捕获。</p>
+      </div>
+      <div class="card">
+        <h4>原始对象逃生口</h4>
+        <p>需要底层库完整能力时，用 <code>Photoedits.raw.UPNG</code> 等直接访问（需先 <code>use</code>），不被封装限制。</p>
+      </div>
+    </div>
+
+    <h3>全局对象结构</h3>
+    <pre>Photoedits
+├── version          <span class="cm">// '1.0.0'</span>
+├── baseUrl          <span class="cm">// 自动探测得到的 API 目录</span>
+├── modules          <span class="cm">// ['png','tiff','zip','font','nn']</span>
+├── use(name)        <span class="cm">// 预加载指定模块</span>
+├── ready()          <span class="cm">// 预加载全部模块</span>
+├── isLoaded(name)   <span class="cm">// 查询加载状态</span>
+├── raw              <span class="cm">// {UPNG, UTIF, UZIP, Typr, UNN}</span>
+├── utils            <span class="cm">// 通用工具</span>
+├── canvas           <span class="cm">// Canvas 图像处理</span>
+├── png              <span class="cm">// UPNG 封装 + 高层方法</span>
+├── tiff             <span class="cm">// UTIF 封装 + 高层方法</span>
+├── zip              <span class="cm">// UZIP 封装</span>
+├── font             <span class="cm">// Typr 封装 + 高层方法</span>
+├── nn               <span class="cm">// UNN 封装</span>
+└── config           <span class="cm">// baseUrl() / timeout()</span></pre>
+  </section>
+
+  <!-- ============ utils ============ -->
+  <section id="utils">
+    <h2><span class="num">03</span>工具 <code>Photoedits.utils</code></h2>
+    <p class="sub">数据类型转换与下载，无需加载任何底层库。</p>
+
+    <div class="method">
+      <div class="head"><span class="sig">utils.toArrayBuffer(input)</span><span class="pill async">async</span><span class="ret">Promise&lt;ArrayBuffer&gt;</span></div>
+      <div class="body"><p>把 <code>ArrayBuffer</code>、<code>TypedArray</code>、<code>Blob</code>、<code>File</code> 统一转成 ArrayBuffer。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">utils.toBlob(input, type?)</span><span class="pill async">async</span><span class="ret">Promise&lt;Blob&gt;</span></div>
+      <div class="body"><p>把 ArrayBuffer / Blob / dataURL 统一转成 Blob。<code>type</code> 为 MIME 类型。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">utils.arrayBufferToBlob(buffer, type?)</span><span class="pill sync">sync</span><span class="ret">Blob</span></div>
+      <div class="body"><p>ArrayBuffer 转 Blob。默认 MIME 为 <code>application/octet-stream</code>。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">utils.blobToDataURL(blob)</span><span class="pill async">async</span><span class="ret">Promise&lt;string&gt;</span></div>
+      <div class="body"><p>Blob 转 dataURL 字符串。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">utils.dataURLToBlob(dataURL)</span><span class="pill sync">sync</span><span class="ret">Blob</span></div>
+      <div class="body"><p>dataURL 字符串转 Blob。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">utils.download(blob, filename?)</span><span class="pill sync">sync</span><span class="ret">string</span></div>
+      <div class="body"><p>触发浏览器下载。接受 Blob 或 ArrayBuffer。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">utils.bytesToBase64(bytes)</span><span class="pill sync">sync</span><span class="ret">string</span></div>
+      <div class="body"><p>Uint8Array / ArrayBuffer 转 Base64 字符串。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">utils.base64ToBytes(b64)</span><span class="pill sync">sync</span><span class="ret">Uint8Array</span></div>
+      <div class="body"><p>Base64 字符串转 Uint8Array。</p></div>
+    </div>
+
+    <pre><span class="kw">const</span> buf   = <span class="kw">await</span> Photoedits.utils.<span class="fn">toArrayBuffer</span>(file);
+<span class="kw">const</span> b64   = Photoedits.utils.<span class="fn">bytesToBase64</span>(<span class="kw">new</span> <span class="fn">Uint8Array</span>(buf));
+Photoedits.utils.<span class="fn">download</span>(buf, <span class="st">'copy.bin'</span>);</pre>
+  </section>
+
+  <!-- ============ canvas ============ -->
+  <section id="canvas">
+    <h2><span class="num">04</span>Canvas 图像处理 <code>Photoedits.canvas</code></h2>
+    <p class="sub">基于原生 Canvas 2D，不依赖底层库，覆盖常用的裁剪、缩放、旋转、滤镜等操作。</p>
+
+    <div class="method">
+      <div class="head"><span class="sig">canvas.load(src, crossOrigin?)</span><span class="pill async">async</span><span class="ret">Promise&lt;HTMLImageElement&gt;</span></div>
+      <div class="body"><p>加载图片。<code>crossOrigin</code> 默认 <code>'anonymous'</code>，传 <code>false</code> 可关闭（同源图片建议关闭以避免额外请求头）。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.toCanvas(source)</span><span class="pill async">async</span><span class="ret">Promise&lt;HTMLCanvasElement&gt;</span></div>
+      <div class="body"><p>把图片 URL、Blob、File、<code>&lt;img&gt;</code>、<code>&lt;canvas&gt;</code> 统一转成 canvas。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.create(w, h)</span><span class="pill sync">sync</span><span class="ret">HTMLCanvasElement</span></div>
+      <div class="body"><p>创建指定尺寸的空白 canvas。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.toBlob(source, type?, quality?)</span><span class="pill async">async</span><span class="ret">Promise&lt;Blob&gt;</span></div>
+      <div class="body"><p>导出为 Blob。<code>type</code> 如 <code>'image/jpeg'</code>，<code>quality</code> 为 0–1。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.toDataURL(source, type?, quality?)</span><span class="pill async">async</span><span class="ret">Promise&lt;string&gt;</span></div>
+      <div class="body"><p>导出为 dataURL 字符串。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.getImageData(source)</span><span class="pill async">async</span><span class="ret">Promise&lt;ImageData&gt;</span></div>
+      <div class="body"><p>获取像素数据。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.putImageData(imageData)</span><span class="pill sync">sync</span><span class="ret">HTMLCanvasElement</span></div>
+      <div class="body"><p>把 ImageData 绘制到新 canvas。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.resize(source, width, height, opts?)</span><span class="pill async">async</span><span class="ret">Promise&lt;canvas&gt;</span></div>
+      <div class="body"><p>高质量缩放。<code>opts.smooth=false</code> 关闭平滑（像素风），<code>opts.quality</code> 取 <code>'low'|'medium'|'high'</code>。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.crop(source, x, y, width, height)</span><span class="pill async">async</span><span class="ret">Promise&lt;canvas&gt;</span></div>
+      <div class="body"><p>按矩形区域裁剪。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.rotate(source, degrees, bg?)</span><span class="pill async">async</span><span class="ret">Promise&lt;canvas&gt;</span></div>
+      <div class="body"><p>任意角度旋转，canvas 会自动扩展以容纳完整图像。<code>bg</code> 为填充色。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.flip(source, direction)</span><span class="pill async">async</span><span class="ret">Promise&lt;canvas&gt;</span></div>
+      <div class="body"><p>翻转。<code>direction</code> 取 <code>'x'|'horizontal'</code> 或 <code>'y'|'vertical'</code>。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.filter(source, cssFilter)</span><span class="pill async">async</span><span class="ret">Promise&lt;canvas&gt;</span></div>
+      <div class="body"><p>应用 CSS filter 字符串：<code>'grayscale(1)'</code>、<code>'sepia(0.5)'</code>、<code>'blur(3px)'</code>、<code>'brightness(1.2)'</code>、<code>'contrast(1.3)'</code>、<code>'saturate(2)'</code>、<code>'hue-rotate(90deg)'</code> 等。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">canvas.watermark(source, text, opts?)</span><span class="pill async">async</span><span class="ret">Promise&lt;canvas&gt;</span></div>
+      <div class="body"><p>叠加文字水印。<code>opts</code> 支持 <code>font</code>、<code>color</code>、<code>align</code>、<code>baseline</code>、<code>x</code>、<code>y</code>。</p></div>
+    </div>
+
+    <pre><span class="cm">// 裁剪 + 旋转 + 黑白 + 水印流水线</span>
+<span class="kw">let</span> img = <span class="kw">await</span> Photoedits.canvas.<span class="fn">crop</span>(<span class="st">'photo.jpg'</span>, 0, 0, 1200, 800);
+img = <span class="kw">await</span> Photoedits.canvas.<span class="fn">rotate</span>(img, 90);
+img = <span class="kw">await</span> Photoedits.canvas.<span class="fn">filter</span>(img, <span class="st">'grayscale(1) contrast(1.15)'</span>);
+img = <span class="kw">await</span> Photoedits.canvas.<span class="fn">watermark</span>(img, <span class="st">'© Photoedits'</span>, {color:<span class="st">'rgba(255,255,255,.8)'</span>});
+Photoedits.utils.<span class="fn">download</span>(<span class="kw">await</span> Photoedits.canvas.<span class="fn">toBlob</span>(img, <span class="st">'image/jpeg'</span>, .9), <span class="st">'result.jpg'</span>);</pre>
+  </section>
+
+  <!-- ============ PNG ============ -->
+  <section id="png">
+    <h2><span class="num">05</span>PNG / APNG <code>Photoedits.png</code></h2>
+    <p class="sub">基于 UPNG.js。支持无损 / 有损压缩、APNG 动图编解码、像素量化。首次调用自动加载 <code>UPNG.js</code>。</p>
+    <div class="note warn">UPNG 使用 RGBA 像素数据（每像素 4 字节）。编码前请准备好 <code>ArrayBuffer</code> 形式的像素数据。</div>
+
+    <div class="method">
+      <div class="head"><span class="sig">png.encode(imgs, w, h, cnum?, dels?)</span><span class="pill async">async</span><span class="ret">Promise&lt;ArrayBuffer&gt;</span></div>
+      <div class="body">
+        <p>编码 PNG / APNG。<code>imgs</code> 为 RGBA ArrayBuffer 数组（单帧 PNG 传一个元素即 APNG 的「单帧」）。</p>
+        <ul class="clean">
+          <li><code>w,h</code>：图像宽高</li>
+          <li><code>cnum</code>：颜色数，<code>0</code>=无损，<code>256</code>=有损压缩（类似 TinyPNG）</li>
+          <li><code>dels</code>：每帧延迟毫秒数组（多帧时必填）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">png.encodeLL(imgs, w, h, cc, ac, depth, dels?)</span><span class="pill async">async</span><span class="ret">Promise&lt;ArrayBuffer&gt;</span></div>
+      <div class="body"><p>底层编码。<code>cc</code>=颜色通道数(1/3)，<code>ac</code>=alpha 通道(0/1)，<code>depth</code>=位深(1/2/4/8/16)。用于 16 位色等特殊场景。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">png.decode(buffer)</span><span class="pill async">async</span><span class="ret">Promise&lt;object&gt;</span></div>
+      <div class="body"><p>解码 PNG / APNG，返回含 <code>width</code>、<code>height</code>、<code>frames</code>、<code>tabs</code> 等字段的对象。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">png.toRGBA8(decoded)</span><span class="pill async">async</span><span class="ret">Promise&lt;ArrayBuffer[]&gt;</span></div>
+      <div class="body"><p>把 <code>decode()</code> 的结果转成 RGBA ArrayBuffer 数组（每帧一个）。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">png.quantize(rgba, w, h, cnum, opts?)</span><span class="pill async">async</span><span class="ret">Promise&lt;object&gt;</span></div>
+      <div class="body"><p>颜色量化，用 K-D 树把图片压缩到指定颜色数。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">png.minify(buffer, colors=256, dels?)</span><span class="pill async">async</span><span class="ret">Promise&lt;ArrayBuffer&gt;</span></div>
+      <div class="body"><p><strong>高层方法</strong>：解码 → 转 RGBA → 重新编码，一步完成有损压缩。适合减小 PNG 体积。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">png.fromCanvas(source, colors=0, dels?)</span><span class="pill async">async</span><span class="ret">Promise&lt;ArrayBuffer&gt;</span></div>
+      <div class="body"><p><strong>高层方法</strong>：直接把图片/canvas 编码成 PNG ArrayBuffer。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">png.toBlob(source, colors=0, dels?)</span><span class="pill async">async</span><span class="ret">Promise&lt;Blob&gt;</span></div>
+      <div class="body"><p><strong>高层方法</strong>：直接输出 PNG Blob，可直接下载。</p></div>
+    </div>
+
+    <pre><span class="cm">// 例 1：把任意图片压成更小的 PNG</span>
+<span class="kw">const</span> buf = <span class="kw">await</span> Photoedits.utils.<span class="fn">toArrayBuffer</span>(file);
+<span class="kw">const</span> small = <span class="kw">await</span> Photoedits.png.<span class="fn">minify</span>(buf, 256);
+Photoedits.utils.<span class="fn">download</span>(small, <span class="st">'minified.png'</span>);
+
+<span class="cm">// 例 2：canvas 直接转 PNG 下载</span>
+<span class="kw">const</span> blob = <span class="kw">await</span> Photoedits.png.<span class="fn">toBlob</span>(<span class="st">'photo.jpg'</span>);
+Photoedits.utils.<span class="fn">download</span>(blob, <span class="st">'converted.png'</span>);
+
+<span class="cm">// 例 3：合成 2 帧 APNG</span>
+<span class="kw">const</span> f1 = <span class="kw">await</span> Photoedits.canvas.<span class="fn">getImageData</span>(<span class="st">'a.png'</span>);
+<span class="kw">const</span> f2 = <span class="kw">await</span> Photoedits.canvas.<span class="fn">getImageData</span>(<span class="st">'b.png'</span>);
+<span class="kw">const</span> apng = <span class="kw">await</span> Photoedits.png.<span class="fn">encode</span>([f1.data.buffer, f2.data.buffer], f1.width, f1.height, 0, [500, 500]);</pre>
+  </section>
+
+  <!-- ============ TIFF ============ -->
+  <section id="tiff">
+    <h2><span class="num">06</span>TIFF / EXIF <code>Photoedits.tiff</code></h2>
+    <p class="sub">基于 UTIF.js。解码 TIFF、相机 RAW 内嵌预览，读取 EXIF 元数据，也可编码 TIFF。</p>
+
+    <div class="method">
+      <div class="head"><span class="sig">tiff.decode(buffer, prm?)</span><span class="pill async">async</span><span class="ret">Promise&lt;IFD[]&gt;</span></div>
+      <div class="body"><p>解析 TIFF / EXIF 结构，返回 IFD（图像文件目录）数组。每个 IFD 的键为 <code>t256</code>（宽）、<code>t257</code>（高）、<code>t271</code>（相机厂商）等标签。<code>prm</code> 可传 <code>{parseMN:true, debug:false}</code>。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">tiff.decodeImage(buffer, ifd, ifds?)</span><span class="pill async">async</span><span class="ret">Promise&lt;void&gt;</span></div>
+      <div class="body"><p>解压指定 IFD 的像素数据，会向 <code>ifd</code> 写入 <code>width</code>、<code>height</code>、<code>data</code>。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">tiff.toRGBA8(ifd, scale?)</span><span class="pill async">async</span><span class="ret">Promise&lt;Uint8Array&gt;</span></div>
+      <div class="body"><p>把已解码的 IFD 转成 8 位 RGBA 像素数组。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">tiff.encodeImage(rgba, w, h, metadata?)</span><span class="pill async">async</span><span class="ret">Promise&lt;ArrayBuffer&gt;</span></div>
+      <div class="body"><p>把 RGBA 像素编码为 TIFF。<code>metadata</code> 可写入 EXIF 标签。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">tiff.encode(ifds)</span><span class="pill async">async</span><span class="ret">Promise&lt;ArrayBuffer&gt;</span></div>
+      <div class="body"><p>把 IFD 数组编码为完整 TIFF 文件。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">tiff.replaceIMG(imgs)</span><span class="pill async">async</span><span class="ret">Promise&lt;void&gt;</span></div>
+      <div class="body"><p>把页面中 <code>&lt;img&gt;</code> 的 TIFF/RAW 占位替换为解码后的 canvas。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">tiff.bufferToURI(buffer)</span><span class="pill async">async</span><span class="ret">Promise&lt;string&gt;</span></div>
+      <div class="body"><p>ArrayBuffer 转 <code>data:image/...</code> URI。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">tiff.toCanvas(buffer, index=0, opts?)</span><span class="pill async">async</span><span class="ret">Promise&lt;canvas&gt;</span></div>
+      <div class="body"><p><strong>高层方法</strong>：解码 → 转 RGBA → 生成 canvas，一步到位。<code>opts.decodeOptions</code> 传给 <code>decode</code>，<code>opts.scale</code> 传给 <code>toRGBA8</code>。</p></div>
+    </div>
+
+    <pre><span class="cm">// 例 1：读取 EXIF 相机信息</span>
+<span class="kw">const</span> buf  = <span class="kw">await</span> Photoedits.utils.<span class="fn">toArrayBuffer</span>(file);
+<span class="kw">const</span> ifds = <span class="kw">await</span> Photoedits.tiff.<span class="fn">decode</span>(buf);
+<span class="kw">console</span>.<span class="fn">log</span>(ifds[<span class="dv">0</span>][<span class="st">'t271'</span>], ifds[<span class="dv">0</span>][<span class="st">'t272'</span>]); <span class="cm">// 厂商 / 型号</span>
+
+<span class="cm">// 例 2：TIFF 转 canvas 再导出 PNG</span>
+<span class="kw">const</span> c   = <span class="kw">await</span> Photoedits.tiff.<span class="fn">toCanvas</span>(buf);
+<span class="kw">const</span> png = <span class="kw">await</span> Photoedits.png.<span class="fn">toBlob</span>(c);
+Photoedits.utils.<span class="fn">download</span>(png, <span class="st">'converted.png'</span>);</pre>
+    <div class="note">RAW 文件（<code>.cr2/.nef/.arw</code>）只能解码其中的传感器数据与 JPG 预览，UTIF 不负责把传感器数据冲洗成可视图像。</div>
+  </section>
+
+  <!-- ============ ZIP ============ -->
+  <section id="zip">
+    <h2><span class="num">07</span>ZIP 打包 / 解包 <code>Photoedits.zip</code></h2>
+    <p class="sub">基于 UZIP.js。比 pako 更快、更小的 ZIP 实现，适合打包工程文件或批量图片。</p>
+
+    <div class="method">
+      <div class="head"><span class="sig">zip.encode(obj, noCmpr?)</span><span class="pill async">async</span><span class="ret">Promise&lt;ArrayBuffer&gt;</span></div>
+      <div class="body"><p>把 <code>{文件名: Uint8Array}</code> 对象打包成 ZIP ArrayBuffer。<code>noCmpr=true</code> 可跳过压缩。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">zip.decode(buffer, onlyNames?)</span><span class="pill async">async</span><span class="ret">Promise&lt;object&gt;</span></div>
+      <div class="body"><p>解包 ZIP，返回 <code>{文件名: Uint8Array}</code>。<code>onlyNames=true</code> 时只返回文件名。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">zip.parse(buffer, onlyNames?)</span><span class="pill async">async</span><span class="ret">Promise&lt;object&gt;</span></div>
+      <div class="body"><p><code>decode</code> 的别名。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">zip.deflate(data, opts?) / inflate(data)</span><span class="pill async">async</span><span class="ret">Promise&lt;Uint8Array&gt;</span></div>
+      <div class="body"><p>原始 DEFLATE 压缩 / 解压。<code>opts.level</code> 控制压缩级别。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">zip.deflateRaw(...) / inflateRaw(...)</span><span class="pill async">async</span><span class="ret">Promise&lt;Uint8Array&gt;</span></div>
+      <div class="body"><p>裸 DEFLATE（无 zlib 头尾）。</p></div>
+    </div>
+
+    <pre><span class="cm">// 打包多张图片</span>
+<span class="kw">const</span> files = {
+  <span class="st">'a.png'</span>: <span class="kw">new</span> <span class="fn">Uint8Array</span>(<span class="kw">await</span> Photoedits.utils.<span class="fn">toArrayBuffer</span>(fileA)),
+  <span class="st">'b.png'</span>: <span class="kw">new</span> <span class="fn">Uint8Array</span>(<span class="kw">await</span> Photoedits.utils.<span class="fn">toArrayBuffer</span>(fileB))
+};
+<span class="kw">const</span> zipped = <span class="kw">await</span> Photoedits.zip.<span class="fn">encode</span>(files);
+Photoedits.utils.<span class="fn">download</span>(zipped, <span class="st">'images.zip'</span>);
+
+<span class="cm">// 解包</span>
+<span class="kw">const</span> out = <span class="kw">await</span> Photoedits.zip.<span class="fn">decode</span>(zipped);
+<span class="kw">console</span>.<span class="fn">log</span>(<span class="fn">Object.keys</span>(out)); <span class="cm">// ['a.png','b.png']</span></pre>
+  </section>
+
+  <!-- ============ FONT ============ -->
+  <section id="font">
+    <h2><span class="num">08</span>字体解析 <code>Photoedits.font</code></h2>
+    <p class="sub">基于 Typr.js。解析 TTF/OTF/TTC/WOFF 字体，实现「文字转曲」、字形轮廓提取与 SVG 路径输出。Photopea 的官方文字引擎。</p>
+
+    <div class="method">
+      <div class="head"><span class="sig">font.parse(buffer)</span><span class="pill async">async</span><span class="ret">Promise&lt;Font[]&gt;</span></div>
+      <div class="body"><p>解析字体文件，返回字体对象数组（TTC 含多个）。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">font.load(buffer)</span><span class="pill async">async</span><span class="ret">Promise&lt;Font&gt;</span></div>
+      <div class="body"><p><strong>高层方法</strong>：解析并返回第一个字体对象。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">font.codeToGlyph(f, code)</span><span class="pill async">async</span><span class="ret">Promise&lt;number&gt;</span></div>
+      <div class="body"><p>Unicode 码点 → 字形索引。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">font.glyphToPath(f, glyph)</span><span class="pill async">async</span><span class="ret">Promise&lt;Path&gt;</span></div>
+      <div class="body"><p>字形索引 → 路径对象（含 <code>cmds</code> 命令与 <code>crds</code> 坐标）。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">font.shapeToPath(f, text, prm?)</span><span class="pill async">async</span><span class="ret">Promise&lt;Path&gt;</span></div>
+      <div class="body"><p>整段文字 → 路径对象，自动处理字距、连字、 RTL。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">font.pathToSVG(path)</span><span class="pill async">async</span><span class="ret">Promise&lt;string&gt;</span></div>
+      <div class="body"><p>路径对象 → SVG <code>d</code> 属性字符串。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">font.svgToPath(svg)</span><span class="pill async">async</span><span class="ret">Promise&lt;Path&gt;</span></div>
+      <div class="body"><p>SVG 元素 → 路径对象（反向转换）。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">font.textToSVG(buffer, text, opts?)</span><span class="pill async">async</span><span class="ret">Promise&lt;string&gt;</span></div>
+      <div class="body"><p><strong>一步到位</strong>：字体文件 + 文字 → SVG 路径字符串。<code>opts.prm</code> 传给 <code>shapeToPath</code>。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">font.use()</span><span class="pill async">async</span><span class="ret">Promise&lt;object&gt;</span></div>
+      <div class="body"><p>返回 <code>Typr.U</code> 工具对象，可调用未封装的其他方法（<code>shape</code>、<code>pathToContext</code>、<code>initHB</code> 等）。</p></div>
+    </div>
+
+    <pre><span class="cm">// 文字转曲：输出可直接放进 &lt;svg&gt; 的 path</span>
+<span class="kw">const</span> svgPath = <span class="kw">await</span> Photoedits.font.<span class="fn">textToSVG</span>(fontFile, <span class="st">'Photoedits'</span>);
+<span class="kw">console</span>.<span class="fn">log</span>(svgPath); <span class="cm">// "M10 20 C..."</span>
+
+<span class="cm">// 手动流程</span>
+<span class="kw">const</span> f    = <span class="kw">await</span> Photoedits.font.<span class="fn">load</span>(fontFile);
+<span class="kw">const</span> path = <span class="kw">await</span> Photoedits.font.<span class="fn">shapeToPath</span>(f, <span class="st">'ABC'</span>);
+<span class="kw">const</span> d    = <span class="kw">await</span> Photoedits.font.<span class="fn">pathToSVG</span>(path);</pre>
+  </section>
+
+  <!-- ============ NN ============ -->
+  <section id="nn">
+    <h2><span class="num">09</span>神经网络 <code>Photoedits.nn</code></h2>
+    <p class="sub">基于 UNN.js。纯 JavaScript 深度学习推理，比 ConvNetJS 快约 4 倍，可在浏览器本地运行轻量模型。</p>
+
+    <div class="method">
+      <div class="head"><span class="sig">nn.create(topo, v)</span><span class="pill async">async</span><span class="ret">Promise&lt;Net&gt;</span></div>
+      <div class="body"><p>创建网络。<code>topo</code> 为层定义数组，如 <code>[['inpt','line',2,1,1],['full','sigm',2,1,1],['full','sigm',1,1,1]]</code>；<code>v</code> 为初始随机权重范围。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">nn.train(net, inputs, outputs, prm, debug?)</span><span class="pill async">async</span><span class="ret">Promise&lt;number&gt;</span></div>
+      <div class="body"><p>训练网络，返回误差。<code>prm</code> 支持 <code>{method:'sgd'|'momentum'|'adagrad'|'adadelta', batch_size:N}</code>。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">nn.run(net, input, output?)</span><span class="pill async">async</span><span class="ret">Promise&lt;number[]&gt;</span></div>
+      <div class="body"><p>前向推理，返回输出向量。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">nn.clone(net) / getError(...) / getDeltas(...)</span><span class="pill async">async</span><span class="ret">Promise&lt;any&gt;</span></div>
+      <div class="body"><p>网络克隆、误差计算、梯度获取。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">nn.weightCount(net)</span><span class="pill async">async</span><span class="ret">Promise&lt;number&gt;</span></div>
+      <div class="body"><p>统计网络参数量。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">nn.fromConvNetJS(json)</span><span class="pill async">async</span><span class="ret">Promise&lt;Net&gt;</span></div>
+      <div class="body"><p>导入 ConvNetJS 格式的模型 JSON。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">nn.fromCaffe(prototxt, model)</span><span class="pill async">async</span><span class="ret">Promise&lt;Net&gt;</span></div>
+      <div class="body"><p>导入 Caffe 的 <code>.prototxt</code> 与 <code>.caffemodel</code>。</p></div>
+    </div>
+    <div class="method">
+      <div class="head"><span class="sig">nn.util()</span><span class="pill async">async</span><span class="ret">Promise&lt;object&gt;</span></div>
+      <div class="body"><p>返回 <code>UNN.util</code> 原始工具对象。</p></div>
+    </div>
+
+    <pre><span class="cm">// 训练一个 XOR 网络</span>
+<span class="kw">const</span> net = <span class="kw">await</span> Photoedits.nn.<span class="fn">create</span>([
+  [<span class="st">'inpt'</span>,<span class="st">'line'</span>,<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">1</span>],
+  [<span class="st">'full'</span>,<span class="st">'sigm'</span>,<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">1</span>],
+  [<span class="st">'full'</span>,<span class="st">'sigm'</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>]
+], <span class="dv">0.5</span>);
+
+<span class="kw">await</span> Photoedits.nn.<span class="fn">train</span>(net, [[<span class="dv">0</span>,<span class="dv">0</span>],[<span class="dv">0</span>,<span class="dv">1</span>],[<span class="dv">1</span>,<span class="dv">0</span>],[<span class="dv">1</span>,<span class="dv">1</span>]],
+                              [[<span class="dv">0</span>],[<span class="dv">1</span>],[<span class="dv">1</span>],[<span class="dv">0</span>]],
+                              {method:<span class="st">'adadelta'</span>, batch_size:<span class="dv">4</span>});
+<span class="kw">console</span>.<span class="fn">log</span>(<span class="kw">await</span> Photoedits.nn.<span class="fn">run</span>(net, [<span class="dv">1</span>,<span class="dv">0</span>])); <span class="cm">// ≈ [1]</span></pre>
+  </section>
+
+  <!-- ============ 错误处理 ============ -->
+  <section id="error">
+    <h2><span class="num">10</span>错误处理与配置</h2>
+    <pre><span class="kw">try</span> {
+  <span class="kw">const</span> img = <span class="kw">await</span> Photoedits.tiff.<span class="fn">toCanvas</span>(file);
+} <span class="kw">catch</span> (err) {
+  <span class="kw">console</span>.<span class="fn">error</span>(err.message);
+  <span class="cm">// "[Photoedits] 加载超时: .../libs/UTIF.js (20000ms)"</span>
+}</pre>
+    <table>
+      <tr><th>配置</th><th>说明</th></tr>
+      <tr><td><code>Photoedits.config.baseUrl(url)</code></td><td>手动指定 API 目录地址。默认自动从当前脚本 <code>src</code> 推断，通常无需设置。修改会清空加载缓存。</td></tr>
+      <tr><td><code>Photoedits.config.timeout(ms)</code></td><td>设置单个库脚本加载超时，默认 20000ms。</td></tr>
+    </table>
+    <div class="note warn"><strong>跨域资源注意：</strong>用 <code>canvas.load(url)</code> 加载其他域名的图片时，对方服务器必须返回 <code>Access-Control-Allow-Origin</code> 头，否则 canvas 会被污染，<code>getImageData</code>/<code>toBlob</code> 会抛错。本地文件（Blob/File）不受此限制。</div>
+  </section>
+
+  <!-- ============ 许可 ============ -->
+  <section id="license">
+    <h2><span class="num">11</span>许可与来源</h2>
+    <p class="sub">Photoedits 聚合的所有底层库均为 MIT 许可，可自由用于商业项目。版权归各自作者所有。</p>
+    <table>
+      <tr><th>模块</th><th>库</th><th>作者</th><th>许可</th></tr>
+      <tr><td>png</td><td>UPNG.js</td><td>Photopea</td><td>MIT</td></tr>
+      <tr><td>tiff</td><td>UTIF.js</td><td>Photopea</td><td>MIT</td></tr>
+      <tr><td>zip</td><td>UZIP.js</td><td>Photopea</td><td>MIT</td></tr>
+      <tr><td>font</td><td>Typr.js</td><td>Photopea</td><td>MIT</td></tr>
+      <tr><td>nn</td><td>UNN.js</td><td>Photopea</td><td>MIT</td></tr>
+      <tr><td>编辑器</td><td>miniPaint</td><td>ViliusL</td><td>MIT</td></tr>
+      <tr><td>编辑器</td><td>TOAST UI Image Editor</td><td>NHN Cloud</td><td>MIT</td></tr>
+    </table>
+    <p>完整许可文本见 <code>/api/libs/*.LICENSE.txt</code> 及各项目目录。已移除存在专有许可限制的第三方项目，确保本 API 全链路 MIT 合规。</p>
+    <div class="note">API 地址：<code>https://photoedits.leleleling.site/api/api.js</code></div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <strong>Photoedits</strong> · 纯前端图像编辑 API · v1.0.0<br>
+    所有计算在浏览器本地完成，你的图片永远不会离开设备。
+  </div>
+</footer>
+
+</body>
+</html>

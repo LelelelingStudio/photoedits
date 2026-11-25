@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /demo.html
+
+Sitemap: https://photoedits.leleleling.site/sitemap.xml

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Photoedits — 内部演示</title>
+<style>
+  :root{--bg:#0f1117;--card:#191c26;--line:#2b2f3d;--ink:#e8ebf5;--muted:#9aa2b8;--brand:#7c7cf0;--ok:#34d399;--err:#f87171;--mono:ui-monospace,Menlo,Consolas,monospace}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;line-height:1.6}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  header h1{font-size:22px;margin:0}
+  .tag{font-size:11px;padding:3px 9px;background:#3a2a55;color:#c9a7ff;border-radius:99px;font-weight:700}
+  .sub{color:var(--muted);margin:6px 0 24px;font-size:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .card h2{font-size:15px;margin:0 0 12px;color:#c7cbf0}
+  .row{display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap}
+  button,label.btn{background:var(--brand);color:#fff;border:none;border-radius:7px;padding:7px 13px;font-size:13px;cursor:pointer;font-family:inherit}
+  button:hover{filter:brightness(1.12)}
+  button.ghost{background:#2a2e3c;color:var(--ink)}
+  input[type=file]{font-size:12px;max-width:100%}
+  input[type=text],input[type=number]{background:#0e1016;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:12px;width:90px}
+  .out{margin-top:10px;font-size:12px;color:var(--muted);min-height:18px}
+  .out.ok{color:var(--ok)}.out.err{color:var(--err)}
+  pre{background:#0b0d12;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11.5px;color:#b9c2da;overflow:auto;max-height:240px}
+  img.preview,canvas.preview{max-width:100%;max-height:230px;border-radius:8px;border:1px solid var(--line);margin-top:10px;background:#0b0d12}
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#555;flex:none}
+  .dot.on{background:var(--ok)}.dot.off{background:var(--err)}
+  .note{font-size:12px;color:#f0b866;background:#3a2c12;border:1px solid #5c431a;padding:10px 13px;border-radius:8px;margin-bottom:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Photoedits API</h1><span class="tag">内部演示 · 未公开</span></header>
+  <p class="sub">此页仅用于本地验证 API 各模块是否工作，不对外链接，已设置 <code>noindex</code>。API 地址：<code id="apiBase">…</code></p>
+  <div class="note">演示页加载的是线上 <code>api.js</code>。请确认 <code>photoedits.leleleling.site</code> 已部署完成。</div>
+
+  <div class="row" style="margin-bottom:18px">
+    <span class="status"><span class="dot" id="dot"></span><span id="loadStatus">引擎状态：未加载</span></span>
+    <button onclick="preload()">预加载全部引擎</button>
+  </div>
+
+  <div class="grid">
+    <!-- canvas -->
+    <div class="card">
+      <h2>01 · Canvas 图像处理</h2>
+      <input type="file" id="canvasFile" accept="image/*">
+      <div class="row">
+        <button onclick="testResize()">缩放 400px</button>
+        <button class="ghost" onclick="testFilter()">黑白滤镜</button>
+        <button class="ghost" onclick="testRotate()">旋转 90°</button>
+      </div>
+      <div class="out" id="canvasOut"></div>
+      <img class="preview" id="canvasPreview" alt="preview">
+    </div>
+
+    <!-- png -->
+    <div class="card">
+      <h2>02 · PNG 压缩</h2>
+      <input type="file" id="pngFile" accept="image/*">
+      <div class="row">
+        <span style="font-size:12px;color:var(--muted)">颜色数</span>
+        <input type="number" id="pngColors" value="256" min="0" max="256">
+        <button onclick="testPng()">minify</button>
+      </div>
+      <div class="out" id="pngOut"></div>
+    </div>
+
+    <!-- tiff -->
+    <div class="card">
+      <h2>03 · TIFF / EXIF</h2>
+      <input type="file" id="tiffFile" accept=".tif,.tiff,image/tiff">
+      <div class="row">
+        <button onclick="testTiff()">解析 IFD</button>
+        <button class="ghost" onclick="testTiffCanvas()">转 Canvas</button>
+      </div>
+      <div class="out" id="tiffOut"></div>
+      <pre id="tiffJson" style="display:none"></pre>
+      <canvas class="preview" id="tiffCanvas" style="display:none"></canvas>
+    </div>
+
+    <!-- zip -->
+    <div class="card">
+      <h2>04 · ZIP 打包 / 解包</h2>
+      <input type="file" id="zipFile" accept="image/*">
+      <div class="row"><button onclick="testZip()">打包 → 解包</button></div>
+      <div class="out" id="zipOut"></div>
+    </div>
+
+    <!-- font -->
+    <div class="card">
+      <h2>05 · 字体文字转曲</h2>
+      <input type="file" id="fontFile" accept=".ttf,.otf,.woff">
+      <div class="row">
+        <input type="text" id="fontText" value="Photoedits">
+        <button onclick="testFont()">textToSVG</button>
+      </div>
+      <div class="out" id="fontOut"></div>
+      <pre id="fontPath" style="display:none"></pre>
+    </div>
+
+    <!-- nn -->
+    <div class="card">
+      <h2>06 · 神经网络 XOR</h2>
+      <div class="row"><button onclick="testNN()">训练并推理</button></div>
+      <div class="out" id="nnOut"></div>
+      <pre id="nnLog" style="display:none"></pre>
+    </div>
+
+    <!-- utils -->
+    <div class="card">
+      <h2>07 · 工具函数</h2>
+      <input type="file" id="utilFile">
+      <div class="row"><button onclick="testUtils()">ArrayBuffer → Base64</button></div>
+      <div class="out" id="utilOut"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://photoedits.leleleling.site/api/api.js"></script>
+<script>
+document.getElementById('apiBase').textContent = window.Photoedits ? Photoedits.baseUrl : '加载失败';
+
+function out(id, msg, cls){ var e=document.getElementById(id); e.className='out '+(cls||''); e.textContent=msg; }
+function firstFile(id){ return document.getElementById(id).files[0]; }
+function preview(id, src){ var e=document.getElementById(id); e.src=src; e.style.display='block'; }
+function log(id, text){ var e=document.getElementById(id); e.style.display='block'; e.textContent=text; }
+
+function preload(){
+  out('loadStatus','加载中…');
+  document.getElementById('dot').className='dot';
+  Photoedits.ready().then(function(){
+    document.getElementById('dot').className='dot on';
+    out('loadStatus','引擎状态：全部就绪 ✔','ok');
+  }).catch(function(err){
+    document.getElementById('dot').className='dot off';
+    out('loadStatus','加载失败：'+err.message,'err');
+  });
+}
+
+function testResize(){
+  var f=firstFile('canvasFile'); if(!f) return out('canvasOut','请先选择图片','err');
+  Photoedits.canvas.resize(f, 400, 400).then(function(c){
+    preview('canvasPreview', c.toDataURL());
+    out('canvasOut','缩放成功：'+c.width+'×'+c.height,'ok');
+  }).catch(function(e){ out('canvasOut',e.message,'err'); });
+}
+function testFilter(){
+  var f=firstFile('canvasFile'); if(!f) return out('canvasOut','请先选择图片','err');
+  Photoedits.canvas.filter(f,'grayscale(1) contrast(1.2)').then(function(c){
+    preview('canvasPreview', c.toDataURL()); out('canvasOut','滤镜成功','ok');
+  }).catch(function(e){ out('canvasOut',e.message,'err'); });
+}
+function testRotate(){
+  var f=firstFile('canvasFile'); if(!f) return out('canvasOut','请先选择图片','err');
+  Photoedits.canvas.rotate(f,90).then(function(c){
+    preview('canvasPreview', c.toDataURL()); out('canvasOut','旋转成功：'+c.width+'×'+c.height,'ok');
+  }).catch(function(e){ out('canvasOut',e.message,'err'); });
+}
+
+function testPng(){
+  var f=firstFile('pngFile'); if(!f) return out('pngOut','请先选择图片','err');
+  var colors=parseInt(document.getElementById('pngColors').value,10);
+  Photoedits.utils.toArrayBuffer(f).then(function(buf){
+    return Photoedits.png.minify(buf, colors);
+  }).then(function(result){
+    var ratio=(result.byteLength/f.size*100).toFixed(1);
+    out('pngOut','压缩完成：'+(f.size/1024).toFixed(1)+'KB → '+(result.byteLength/1024).toFixed(1)+'KB ('+ratio+'%)','ok');
+    Photoedits.utils.download(result, 'minified.png');
+  }).catch(function(e){ out('pngOut',e.message,'err'); });
+}
+
+function testTiff(){
+  var f=firstFile('tiffFile'); if(!f) return out('tiffOut','请先选择 TIFF','err');
+  Photoedits.utils.toArrayBuffer(f).then(function(buf){ return Photoedits.tiff.decode(buf); })
+    .then(function(ifds){
+      out('tiffOut','解析成功，IFD 数量：'+ifds.length,'ok');
+      var summarize=ifds.map(function(x){ return {width:x.t256&&x.t256[0], height:x.t257&&x.t257[0], make:x.t271&&x.t271[0]}; });
+      log('tiffJson', JSON.stringify(summarize,null,2));
+    }).catch(function(e){ out('tiffOut',e.message,'err'); });
+}
+function testTiffCanvas(){
+  var f=firstFile('tiffFile'); if(!f) return out('tiffOut','请先选择 TIFF','err');
+  Photoedits.tiff.toCanvas(f).then(function(c){
+    var el=document.getElementById('tiffCanvas');
+    el.width=c.width; el.height=c.height; el.style.display='block';
+    el.getContext('2d').drawImage(c,0,0);
+    out('tiffOut','转 Canvas 成功：'+c.width+'×'+c.height,'ok');
+  }).catch(function(e){ out('tiffOut',e.message,'err'); });
+}
+
+function testZip(){
+  var f=firstFile('zipFile'); if(!f) return out('zipOut','请先选择文件','err');
+  Photoedits.utils.toArrayBuffer(f).then(function(buf){
+    return Photoedits.zip.encode({ 'file.bin': new Uint8Array(buf) });
+  }).then(function(zipBuf){
+    return Photoedits.zip.decode(zipBuf).then(function(files){
+      var restored=files['file.bin'];
+      out('zipOut','ZIP '+zipBuf.byteLength+'B → 解包 '+Object.keys(files).join(',')+' → '+restored.byteLength+'B '+(restored.byteLength===f.size?'✔ 一致':'✘ 不一致'),'ok');
+    });
+  }).catch(function(e){ out('zipOut',e.message,'err'); });
+}
+
+function testFont(){
+  var f=firstFile('fontFile'); if(!f) return out('fontOut','请先选择字体','err');
+  var text=document.getElementById('fontText').value||'ABC';
+  Photoedits.font.textToSVG(f, text).then(function(path){
+    out('fontOut','生成路径 '+path.length+' 字符','ok');
+    log('fontPath', path.slice(0,1000));
+  }).catch(function(e){ out('fontOut',e.message,'err'); });
+}
+
+function testNN(){
+  out('nnOut','训练中…');
+  Photoedits.nn.create([
+    ['inpt','line',2,1,1],
+    ['full','sigm',2,1,1],
+    ['full','sigm',1,1,1]
+  ],0.5).then(function(net){
+    return Photoedits.nn.train(net,
+      [[0,0],[0,1],[1,0],[1,1]],
+      [[0],[1],[1],[0]],
+      {method:'adadelta',batch_size:4}
+    ).then(function(err){ return {net:net, err:err}; });
+  }).then(function(r){
+    return Promise.all([
+      Photoedits.nn.run(r.net,[0,0]),
+      Photoedits.nn.run(r.net,[0,1]),
+      Photoedits.nn.run(r.net,[1,0]),
+      Photoedits.nn.run(r.net,[1,1])
+    ]).then(function(vals){
+      out('nnOut','误差 '+r.err.toFixed(4)+' · XOR 推理完成','ok');
+      log('nnLog', vals.map(function(v,i){ return ['0,0','0,1','1,0','1,1'][i]+' → '+v[0].toFixed(3); }).join('\n'));
+    });
+  }).catch(function(e){ out('nnOut',e.message,'err'); });
+}
+
+function testUtils(){
+  var f=firstFile('utilFile'); if(!f) return out('utilOut','请先选择文件','err');
+  Photoedits.utils.toArrayBuffer(f).then(function(buf){
+    var b64=Photoedits.utils.bytesToBase64(new Uint8Array(buf));
+    out('utilOut','Base64 长度 '+b64.length+'（原 '+buf.byteLength+' 字节）','ok');
+  }).catch(function(e){ out('utilOut',e.message,'err'); });
+}
+</script>
+</body>
+</html>
